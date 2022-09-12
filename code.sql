@@ -1,88 +1,70 @@
-SELECT * FROM users LIMIT 10;
-UPDATE users SET updated_at = NOW() WHERE created_at < updated_at;
-DESC users;
-DESC profiles;
-SELECT * FROM profiles LIMIT 10;
-UPDATE profiles SET updated_at = NOW() WHERE updated_at < created_at;
-UPDATE profiles SET photo_id  = FLOOR(1 + RAND() * 100);
-CREATE TABLE user_statuses (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки",
-  name VARCHAR(100) NOT NULL COMMENT "Название статуса (уникально)",
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",
-  udated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"
-  ) COMMENT "Справочник статусов";
-UPDATE profiles SET status = NULL;
-SELECT * from user_statuses;
-INSERT INTO user_statuses (name) VALUES
-('single'),
-('married');
-SELECT * from profiles LIMIT 10;
-ALTER TABLE profiles RENAME COLUMN status TO user_status_id;
-ALTER TABLE profiles MODIFY COLUMN user_status_id INT UNSIGNED;
-UPDATE profiles SET user_status_id = FLOOR(1 + RAND() * 2);
-DROP TEMPORARY TABLE IF EXISTS genders;
-CREATE TEMPORARY TABLE genders (name CHAR(1));
-INSERT INTO genders VALUES ("m"), ("f");
-SELECT * FROM genders;
-UPDATE profiles
-  SET gender = (SELECT name FROM genders ORDER BY RAND() LIMIT 1);
-SHOW TABLES;
-UPDATE messages SET
-  from_user_id = FLOOR(1 + RAND() * 100),
-  to_user_id = FLOOR(1 + RAND() * 100);
-DESC media;
-SELECT * FROM media LIMIT 10;
-SELECT * FROM media_types;
-TRUNCATE media_types;
-INSERT INTO media_types (name) VALUES
-   ('photo'),
-   ('video'),
-   ('audio')
-   ;
-UPDATE media SET media_type_id = FLOOR(1 + RAND() * 3);
-UPDATE media SET user_id = FLOOR(1 + RAND() * 100);
-DROP TEMPORARY TABLE IF EXISTS extensions;
-CREATE TEMPORARY TABLE extensions (
-   name VARCHAR(10)
-   );
-INSERT INTO extensions VALUES
-   ('jpeg'),
-   ('png'),
-   ('mp4'),
-   ('avi')
-   ;
-   SELECT * FROM extensions;
-UPDATE media SET filename = CONCAT(
-	'http://dropbox.net/vk',
-	filename,
-	(SELECT last_name FROM users ORDER BY RAND() LIMIT 1),
-	'.',
-	(SELECT name FROM extensions ORDER BY RAND() LIMIT 1)
+-- Задача 1
+DROP TABLE users;
+CREATE TABLE users(
+id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(17),
+created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Время создания строки',
+updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT'Время обновления строки'
 );
-UPDATE media SET size = FLOOR(10000 + (RAND() * 1000000)) WHERE size < 1000;
-UPDATE media SET metadata = CONCAT('{"owner":"',
-   (SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = user_id),
-   '"}');
-SELECT * FROM media LIMIT 10;
-ALTER TABLE media MODIFY COLUMN metadata JSON;
-DESC media;
-DESC friendship;
-RENAME TABLE friendship TO friendships;
-SELECT * FROM friendships LIMIT 10;
-UPDATE friendships SET 
-  user_id = FLOOR(1 + RAND() * 100),
-  friend_id = FLOOR(1 + RAND() * 100);
-UPDATE friendships SET friend_id = friend_id + 1 WHERE user_id = friend_id;
-SELECT * FROM friendship_statuses;
-TRUNCATE friendship_statuses;
-INSERT INTO friendship_statuses (name) VALUES
-  ('Requested'),
-  ('Confirmed'),
-  ('Rejected');
-UPDATE friendships SET status_id = FLOOR(1 + RAND() * 3); 
-SELECT * FROM friendships;
-DESC communities;
-SELECT * FROM communities;
-DELETE FROM communities WHERE id > 20;
-SELECT * FROM communities_users;
-UPDATE communities_users SET community_id = FLOOR(1 + RAND() * 20);
+-- После создания таблицы вставляю в неё данные и, посккольку изначально тип данных задан текущий момент времени, 
+-- при вставке в столбец "имя" дата/время измененения и создания заполняются автоматически
+INSERT INTO
+users (name)
+VALUES
+('Alex'), ('Mary'), ('John'), ('Anton');
+SELECT * FROM users;
+-- Задача 2, создаю таблицу с неправильным типом столбцов
+DROP TABLE users;
+CREATE TABLE users(
+id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(17),
+created_at VARCHAR(30) COMMENT 'Время создания строки',
+updated_at VARCHAR(30)  COMMENT'Время обновления строки',
+birthday DATE
+);
+INSERT INTO
+users (name, created_at, updated_at)
+VALUES
+('Alex', '20.10.2017 08:10', '21.10.2017 09:00'),
+('Mary', '25.11.2017 15:10', '27.10.2017 09:00'),
+('John', '11.11.2018 15:10', '13.11.2018 10:00'),
+('Anton', '13.11.2018 10:10', '15.11.2018 10:00')
+;
+
+UPDATE users SET 
+created_at = STR_TO_DATE(created_at, '%d.%m.%Y %k:%i'),
+updated_at = STR_TO_DATE(updated_at , '%d.%m.%Y %k:%i');
+SELECT * FROM users;
+ALTER TABLE users CHANGE created_at c DATETIME DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE users CHANGE updated_at updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+-- Задание 3
+
+DROP TABLE storehouses_products;
+CREATE TABLE storehouses_products(
+id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+value INT UNSIGNED
+);
+INSERT INTO
+storehouses_products (value)
+VALUES
+(2),(1),(3),(0);
+
+SELECT value, IF(value > 0, 0, 1) as sorted_value FROM storehouses_products ORDER BY IF(value > 0, 0, 1), value;
+SELECT value, value = 0 as value_0 FROM storehouses_products ORDER BY value = 0, value;
+
+-- Задание 1 II блок
+INSERT INTO users (name, birthday) VALUES
+('Светлана', '1988-02-04'),
+('Олег', '1998-03-20'),
+('Константин', '1989-12-13'),
+('Юлия', '2006-07-12');
+SELECT name, birthday FROM users ORDER BY birthday;
+
+SELECT name, birthday FROM users;
+SELECT AVG(TIMESTAMPDIFF(YEAR, birthday, NOW())) as ages FROM users;
+
+-- Задаие 2 II блок
+SELECT DATE_FORMAT(DATE(CONCAT_WS('-', YEAR(NOW()), MONTH(birthday), DAY(birthday))), '%a') AS day,
+COUNT(*) AS total FROM users GROUP BY day ORDER BY total DESC;
+
